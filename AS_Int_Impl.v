@@ -1,8 +1,5 @@
 
 
-Load AS_State.
-
-
 Fixpoint plus (n : nat) (m : nat) : nat :=
   match n with
     | O => m
@@ -16,23 +13,58 @@ Definition checkValid : bool -> bool -> bool :=
  | n,m     => true
 end. 
 
-Definition checkAdd : DataType -> DataType -> DataType :=
+
+Definition TrueFalse : bool -> bool:=
+ fun n  => match n with
+ | false => true
+ | true  => false
+end. 
+
+
+Definition OneIsTrueOneIsFalse (x y: int) : bool := 
+  if zlt ((Int.signed) x + (Int.unsigned)y) (Int.max_unsigned) then false else true.
+
+
+
+
+Definition doAdd : DataType -> DataType -> DataType :=
 fun n m => match n, m with
- | data x k t, data y l p => data (plus x y) (checkValid k l) true
+ | data x k t, data y l p =>
+
+if ( (TrueFalse k) && (TrueFalse l) )
+ then 
+( 
+ if ( (zlt (Int.signed x) 0) && (zlt (Int.signed y) 0)  ) 
+  then 
+     ( 
+          if (zlt  ((Int.signed) x + (Int.signed)y) (Int.min_signed) ) 
+          then (data (Int.add x y) false true) else (data (Int.add x y) false false)
+      )
+ else 
+     (
+          if ( zlt  (Int.max_signed) ((Int.signed) x + (Int.signed)y))  
+          then (data (Int.add x y) false true ) else (data (Int.add x y) false false) 
+     ) 
+)
+else
+(
+
+     if(k && l) 
+      then 
+      ( 
+       (if ( zlt   (Int.max_unsigned) ((Int.unsigned) x + (Int.unsigned)y)) 
+        then (data (Int.add x y) true true ) else (data (Int.add x y) true false) ) 
+      )
+
+      else 
+      ( 
+        if (k) 
+        then (data (Int.add x y) true (OneIsTrueOneIsFalse y x)) else(data (Int.add x y) true (OneIsTrueOneIsFalse x y)) 
+      )
+
+)
+
 end.
-
-Fixpoint add (s:stack) : stack := 
-  match s with
-  | null => s
-  | t :: null => s
-  | t :: k :: s' => (checkAdd t k) :: s'
-  end.
-
-Definition addFromState : state -> state :=
-  fun state => match state with
-  | createState stack pc reg_0 reg_1 reg_2 reg_3 => 
-       createState (add stack) (S pc) reg_0 reg_1 reg_2 reg_3
-  end.
 
 
 
@@ -43,6 +75,27 @@ Fixpoint pop_stack (s:stack) : stack :=
   | null => s
   | t :: s' => s'
   end.
+
+
+Fixpoint getTopStack (s:stack) : DataType:=
+ match s with
+ | null => data (Int.repr 0) false true
+ | t :: s' => t 
+ end.
+
+Fixpoint add (s:stack) : stack := 
+  match s with
+  | null => s
+  | t :: null => s
+  | t :: k :: s' => (doAdd t k) :: s'
+  end.
+
+Definition exec_add : state -> state :=
+  fun state => match state with
+  | createState stack pc reg_0 reg_1 reg_2 reg_3 => 
+       createState (add stack) (S pc) reg_0 reg_1 reg_2 reg_3
+  end.
+
 
 Definition exec_pop : state -> state :=
   fun state => match state with
@@ -57,11 +110,7 @@ Definition exec_pushbyte : DataType -> state -> state :=
        createState (n::stack) (S pc) reg_0 reg_1 reg_2 reg_3
   end.
 
-Fixpoint getTopStack (s:stack) : DataType:=
- match s with
- | null => data O false true
- | t :: s' => t 
- end.
+
 
 Definition exec_loadRegister_0 : state -> state :=
  fun s => match s with
@@ -108,7 +157,7 @@ Definition getReg_3 : state -> DataType :=
 end.
 
 
-Definition setLocal: state -> nat -> state:=
+Definition exec_setLocal: state -> nat -> state:=
  fun s n => match n with
  | O          => exec_loadRegister_0 s
  | S(O)       => exec_loadRegister_1 s
@@ -117,7 +166,7 @@ Definition setLocal: state -> nat -> state:=
  |  _         => s
  end.
 
-Definition getLocal: state -> nat -> state:=
+Definition exec_getLocal: state -> nat -> state:=
  fun s n => match n with
  | O          => exec_pushbyte (getReg_0 s) s
  | S(O)       => exec_pushbyte (getReg_1 s) s
@@ -127,19 +176,12 @@ Definition getLocal: state -> nat -> state:=
  end.
 
 
-Fixpoint checkU (n:nat) : bool:=
-match n with
- | O => true
- | 16 => false
- | S k => (checkU k)
- end.
+Definition checkU (n: int) : bool :=
+  if zlt (Int.signed n) (Int.signed (Int.repr 16)) then true else false.
 
-Fixpoint checkI (n:nat) : bool:=
-match n with
- | O => true
- | 8 => false
- | S k => (checkI k)
- end.
+Definition checkI (n: int) : bool :=
+  if zlt (Int.signed n) (Int.signed (Int.repr 32)) then true else false.
+
 
 Definition convertI: DataType -> DataType :=
  fun d => match d with
@@ -153,14 +195,11 @@ Definition convertU: DataType -> DataType :=
  | data x false t => data x false (checkU x)
  end.
 
-
-
 Definition convertIFromState: state -> state :=
  fun s => match s with
    | createState stack pc reg_0 reg_1 reg_2 reg_3 => 
     exec_pushbyte (convertI (getTopStack stack)) (exec_pop (exec_pop s))
   end.
-
 
 
 
