@@ -1,3 +1,6 @@
+
+
+
 (* The next two lines pull is some extra list manipulations and the [ ... ; ...] *)
 (* notation for lists. *)
 Require Import List.
@@ -22,9 +25,11 @@ Inductive lang_type : Set :=
 
 (* Descriptive names for operand types in the bytecode *)
 Definition ot_register_index := nat. (* u30 *)
-Definition ot_arg_count := nat. (* u30 *)
-Definition ot_ubyte := nat. (* unsigned byte *)
+Definition ot_arg_count := int. (* u30 *)
+Definition ot_ubyte := int. (* unsigned byte *)
 
+
+(* The instruction set for the interpreter *)
 Inductive instruction : Set :=
   (* Arithmetic *)
   | inst_add : instruction
@@ -54,3 +59,4 @@ Inductive instruction : Set :=
 
   (* Type conversion *)
   | inst_convert_i : instruction.
+
