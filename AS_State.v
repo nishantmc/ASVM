@@ -1,27 +1,25 @@
-(*Record pre_state (A:Type) : Type := mkState
- { state_frame_stack   : list frame
- ; state_classes       : CP.cert_classpool
- ; state_object_heap   : cert_heap state_classes
- ; state_static_fields : cert_fieldstore state_classes state_object_heap
- ; state_res           : A
- ; state_reslimit      : A
- }.*)
+(* The AS virtual machine state for the interpreter *)
+
+(* The integer datatype which represents the signed and unsigned versions 
+   value -> bit representation
+   type -> true is unsigned, false is signed
+   valid -> true is overflowed operation, false is normal operation   
+*)
 Record DataType := data
-{value : nat
+{value : int
 ;type  : bool
 ;valid : bool
 }.
 
+(* The stack for the VM *)
 Inductive stack : Type :=
   | null : stack
   | push : DataType -> stack -> stack.
 
-(*Inductive instruction : Type :=
-  | pushbyte : nat -> instruction
-  | pop : instruction.*)
 
 Notation "x :: l" := (push x l) (at level 60, right associativity).
 
+(* The abstraction for the state *)
 Record state := createState
  { state_stack  : stack
  ; state_pc     : nat
@@ -30,3 +28,4 @@ Record state := createState
  ; reg_2        : DataType
  ; reg_3        : DataType
  }.
+
